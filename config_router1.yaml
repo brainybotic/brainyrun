@@ -1,0 +1,89 @@
+---
+connection:
+    hostname    : 10.0.5.1
+    username    : formando
+    password    : Passw0rd
+    port        : 22
+    file_type   : multiple
+
+# nos routers tem que ser multiple porque envia multiplos comandos na mesma conexão
+
+run: 
+    -   name: Configuração de banner
+        description: Configuração de banner
+        type: shell        
+        command: 
+            - enable
+            - configure terminal
+            - "banner motd #====== Access restricted only to authorized personnel. ======"
+            - "=============================================================#"
+            - end
+
+    -   name: Desativação de DNS lookup
+        description: Desativação de DNS lookup
+        type: shell        
+        command: 
+            - configure terminal
+            - no ip domain-lookup
+            - end
+
+    -   name: Desativação de mensagens de log
+        description: Desativação de mensagens de log
+        type: shell        
+        command: 
+            - configure terminal 
+            - line console 0
+            - logging synchronous
+            - end
+
+    -   name: Desativação de paginação
+        description: Desativação de paginação
+        type: shell        
+        command: 
+            - terminal length 0
+
+    -   name: Configuração de interface
+        description: Configuração de interface
+        type: shell        
+        command: 
+            - configure terminal
+            - interface FastEthernet0/0
+            - description TO_R1
+            - ip address 172.17.0.1 255.255.255.0
+            - no shutdown
+            - end
+
+    -   name: Configuração do DNS
+        description: Configuração do DNS
+        type: shell        
+        command: 
+            - configure terminal
+            - ip dns server
+            - ip domain-lookup
+            - ip name-server 1.1.1.1
+            - ip name-server 8.8.8.8
+            - ip host debian 10.0.3.1
+            - ip host rocky 10.0.4.1
+            - end
+
+
+
+#    -   name: Gravação da configuração
+#        description: Gravação da configuração
+#        command: 
+#            - write memory
+
+#    -   name: Mostra a configuração atual
+#        description: Mostra a configuração atual
+#        command: 
+#            - show running-config
+
+# ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -c ssh-rsa formando@10.0.5.1
+# ssh -v -oHostKeyAlgorithms=+ssh-rsa formando@10.0.5.1
+# ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 formando@10.0.5.1
+    
+
+
+...
+
+

@@ -1,0 +1,125 @@
+connection:
+    hostname    : 10.0.4.1
+    username    : formando
+    password    : Passw0rd
+    port        : 22
+
+run:
+    -   name: Atualização do sistema
+        description: Atualização do sistema
+        type: shell
+        command:
+            - sudo dnf -y update
+
+    -   name: Install bind
+        description: Install bind
+        type: shell
+        command:
+            - sudo dnf -y install bind bind-utils
+
+    -   name: Add zone to /etc/named.conf
+        description:
+            Configure BIND
+            Add zone to /etc/named.conf
+            A função aceita 3 parâmetros
+                o nome do ficheiro de configuração 
+                o mome da zona a ser adicionada
+                e a zona a ser adicionada
+        type: function
+        command:
+            - add_dns_zone_to_named_conf
+            - /etc/named.conf
+            - brainybotic.local
+            - zone "/var/named/brainybotic.local" IN {
+                type master;
+                file "brainybotic.local";
+                allow-update { none; };
+              };
+
+#    	listen-on port 53 { 127.0.0.1; 10.10.20.254; };
+#	    //	listen-on-v6 port 53 { ::1; };
+#		allow-query     { localhost; 10.0.0.0/8; };
+#        forwarders {
+#        8.8.8.8;  # Google's DNS server
+#        1.1.1.1;  # Cloudflare DNS
+#        };
+#        forward only;
+
+    -   name: Create zone file
+        description: Create zone file
+        type: shell
+        command:
+            - sudo touch /var/named/brainybotic.local
+            - sudo chown named:named /var/named/brainybotic.local
+            - sudo chmod 640 /var/named/brainybotic.local
+            - sudo echo -e '$TTL 1D' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '@    IN SOA    rocky.brainybotic.local. root.brainybotic.local. ('  | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '                    2024090801   ; serial'                          | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '                   1D      ; refresh'                               | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '                    1H      ; retry' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '                    1W      ; expire' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '                    3H  )   ; minimum' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '               NS  rocky.brainybotic.local.' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e '               A   10.0.4.1' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e 'rocky           IN  A   10.0.4.1' | sudo tee -a /var/named/brainybotic.local
+            - sudo echo -e 'rockyrouter     IN  A   10.0.4.2' | sudo tee -a /var/named/brainybotic.local
+
+    -   name: Configure firewall
+        description: Configure firewall
+        type: shell
+        command:
+            - sudo firewall-cmd --permanent -add-port=53/tcp
+            - sudo firewall-cmd --permanent -add-port=53/udp
+            - sudo firewall-cmd --reload
+
+    -   name: Configurar o bind para iniciar automáticamente
+        description: Configurar o bind para iniciar automáticamente
+        type: shell
+        command:
+            - sudo systemctl restart named
+            - sudo systemctl enable named
+
+
+    -   name: Configurar o hostname
+        description: Configurar o hostname
+            So fiz o primeiro comando
+        type: shell
+        command:
+            - sudo echo -e 'rocky.brainybotic.local' | sudo tee -a /etc/hostname
+            - sudo hostnamectl set-hostname rocky.brainybotic.local
+        
+
+troubleshooting:
+    -   name: Verificar status do bind
+        description: Verificar status do bind
+        command:
+            - sudo systemctl status named
+
+    -   name: Verificar configuração do bind
+        description: Verificar configuração do bind
+        command:
+            - sudo named-checkconf
+
+    -   name: Verificar configuração do bind
+        description: Verificar configuração do bind
+        command:
+            - sudo named-checkzone brainybotic.local /var/named/brainybotic.local
+
+    -   name: Verificar configuração do bind
+        description: Verificar configuração do bind
+        command:
+            - sudo named-checkzone 10.0.4.in-addr.arpa /etc/named/zones/db.10.0.4
+
+    -   name: outros comandos
+        description: outros comandos
+        command:
+            - sudo netstat -anup | grep named
+            - dig @localhost brainybotic.local
+            - nmcli -f ipv4 con show enp0s3
+
+    -   name: Verificar portas abertas
+        description: Verificar portas abertas
+        command:
+            - sudo firewall-cmd --list-ports
+
+...

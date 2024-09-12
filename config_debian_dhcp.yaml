@@ -1,0 +1,73 @@
+---
+connection:
+    hostname    : 10.0.3.1
+    username    : formacao
+    password    : Passw0rd
+    port        : 22
+
+run: 
+    -   name: Atualização do sistema
+        description: Atualização do sistema
+        command:
+            - sudo su
+            - sudo apt update
+            - sudo apt upgrade -y
+
+    -   name: Installing the DHCP Server Package
+        description: Installing the DHCP Server Package
+        command:
+            - sudo DEBIAN_FRONTEND=noninteractive apt -y --force-yes install isc-dhcp-server
+
+    -   name: Apagar o arquivo de configuração padrão
+        description: Fazer backup e apagar o arquivo de configuração padrão
+            e criar um novo arquivo de configuração
+        command:
+            - sudo cp -a /etc/dhcp/dhcpd.conf{,"-$(date +"%Y-%m-%d-%H%M%S")"}
+            - sudo rm /etc/dhcp/dhcpd.conf
+            - sudo touch /etc/dhcp/dhcpd.conf
+
+    -   name: Configuração do servidor DHCP
+        description: Configuração do servidor DHCP
+        command:
+            - echo "subnet 10.0.0.0 netmask 255.0.0.0 {"                | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "  range 10.0.3.100 10.0.3.200;"                     | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "  option routers 10.0.0.13;"                        | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "  option domain-name-servers 8.8.8.8, 8.8.4.4;"     | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "  default-lease-time 600;"                          | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "  max-lease-time 7200;"                             | sudo tee -a /etc/dhcp/dhcpd.conf
+            - echo "}"                                                  | sudo tee -a /etc/dhcp/dhcpd.conf
+
+    -   name: Apagar o arquivo de configuração padrão
+        description:  Apagar o arquivo de configuração padrão
+        command:
+            - sudo cp -a /etc/default/isc-dhcp-server{,"-$(date +"%Y-%m-%d-%H%M%S")"}
+            - sudo rm /etc/default/isc-dhcp-server
+            - sudo touch /etc/default/isc-dhcp-server
+
+    -   name: Configuração dos interfaces
+        description: Configuração dos interfaces
+        command:
+            - echo 'INTERFACESv4="enp0s3"'                               | sudo tee -a /etc/default/isc-dhcp-server
+
+    -   name: Restarting the DHCP Server
+        description: Restarting the DHCP Server
+        command:
+            - sudo systemctl restart isc-dhcp-server
+#            - sudo systemctl status isc-dhcp-server
+
+    -   name: Restart network interface
+        description: Restart network interface
+        command:
+            - sudo ifdown eth0
+            - sudo ifup eth0
+
+    -   name: Configuração do servidor DHCP para iniciar automaticamente
+        description: Configuração do servidor DHCP para iniciar automaticamente
+        command:
+            - sudo systemctl enable isc-dhcp-server
+
+    -   name: Configuração da firewall
+        description: Configuração da firewall
+        command:
+            - sudo ufw allow 67/udp
+...
